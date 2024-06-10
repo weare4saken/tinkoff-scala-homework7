@@ -1,13 +1,11 @@
 sealed trait Trampoline[+A] {
   def run: A = {
-    var trampoline: Trampoline[A] = this
-    while (true) {
-      trampoline match {
-        case Trampoline.Done(result) => return result
-        case Trampoline.More(thunk) => trampoline = thunk()
-      }
+    @annotation.tailrec
+    def loop(t: Trampoline[A]): A = t match {
+      case Trampoline.Done(result) => result
+      case Trampoline.More(thunk) => loop(thunk())
     }
-    throw new RuntimeException("Unreachable code")
+    loop(this)
   }
 
   def flatMap[B](f: A => Trampoline[B]): Trampoline[B] = this match {
